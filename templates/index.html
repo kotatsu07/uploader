@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
+    <script src='main.js'></script>
+</head>
+<body>
+    <form method="POST" action="{{url_for('set_folder')}}" enctype="multipart/form-data">
+            <input type="file" name="files" webkitdirectory>
+            <input type="submit" value="送信"> 
+    </form>
+            {% if watch_path %}
+  <p>現在監視中のフォルダ: {{ watch_path }}</p>
+{% else %}
+  <p>監視フォルダはまだ設定されていません。</p>
+{% endif %}
+
+
+</body>
+</html>
