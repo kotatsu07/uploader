@@ -1,0 +1,25 @@
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import time
+import os
+
+
+class Imagecheck(FileSystemEventHandler):
+    def on_created(self, event):
+        if not event.is_directory:
+            ext = os.path.splitext(event.src_path)[1].lower()
+            if ext in ['.png', '.jpg', '.jpeg', '.gif']:
+               print()
+
+def start_watch(path):
+        event_handler = Imagecheck()
+        observer = Observer()
+        observer.schedule(event_handler,path = path,recursive=False)
+        observer.start()
+
+        try:
+          while True:
+            time.sleep(1)
+        except KeyboardInterrupt:
+          observer.stop()
+        observer.join()
