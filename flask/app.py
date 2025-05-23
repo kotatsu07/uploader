@@ -3,7 +3,7 @@ from werkzeug.utils import secure_filename
 import os
 import json
 import threading
-from folder_watch import start_watch
+from folder_watch import start_watch,stop
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -21,6 +21,7 @@ def load_watch_path():
 
 
 watch_path = load_watch_path()
+watch_path_index = None
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
@@ -28,19 +29,27 @@ def allowed_file(filename):
 @app.route('/', methods=['GET'])
 def index():
     global watch_path
-    return render_template('index.html', watch_path=watch_path)
+    global watch_path_index
+    pathname_index=watch_path_index if watch_path_index else "未設定"
+    return render_template('index.html', watch_path=watch_path,is_watching=is_watching,watch_path_index=pathname_index)
 
 @app.route('/set_folder', methods=['POST'])
 def set_folder():
     global watch_path
     global is_watching
+    global watch_path_index
+
     files = request.files.getlist('files')
 
     if not files:
         return "ファイルが送信されていません", 400
 
     first_file = files[0]
-    folder_name = os.path.dirname(first_file.filename)
+    watch_path_index = os.path.dirname(first_file.filename)
+
+   # 正しい例（Flaskサーバー上に存在するパス）
+    watch_path = os.path.abspath(app.config['UPLOAD_FOLDER'])  # uploads フォルダの絶対パス
+    
 
     for file in files:
         if allowed_file(file.filename):
@@ -49,7 +58,7 @@ def set_folder():
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
             file.save(save_path)
 
-    watch_path = folder_name
+    
 
     with open('settings.json', 'w', encoding='utf-8') as f:
         json.dump({'watch_path': watch_path}, f, ensure_ascii=False, indent=2)
@@ -59,6 +68,22 @@ def set_folder():
         threading.Thread(target=start_watch,args=(watch_path,),daemon=True).start()
 
     return redirect(url_for('index'))
+
+@app.route('/stop',methods=['POST'])
+def stop_watch_route():
+    stop()
+    global is_watching
+    is_watching = False
+    return redirect(url_for('index'))
+
+@app.route('/start_watch_route', methods=['POST'])
+def start_watch_route():
+    global is_watching, watch_path
+    if watch_path and not is_watching:
+        is_watching = True
+        threading.Thread(target=start_watch, args=(watch_path,), daemon=True).start()
+    return redirect(url_for('index'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)
