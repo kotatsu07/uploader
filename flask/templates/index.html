@@ -5,7 +5,7 @@
     <meta http-equiv='X-UA-Compatible' content='IE=edge'>
     <title>Page Title</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-   <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 
     <script src='main.js'></script>
 </head>
@@ -14,6 +14,7 @@
             <input type="file" name="files" webkitdirectory>
             <input type="submit" value="送信"> 
     </form>
+    <input type="file" id="file-input" name="files" webkitdirectory multiple>
             {% if watch_path_index %}
                 <p>現在監視中のフォルダ: {{ watch_path_index }}</p>
             {% else %}
@@ -33,7 +34,13 @@
   <form action="{{ url_for('stop_watch_route') }}" method="post">
     <button type="submit">監視停止</button>
   </form>
-   
+<ul id="image-list"></ul>
+
+
+<script src="{{ url_for('static', filename='js/image_list.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/watch_status.js') }}"></script>
+
 
 
 </body>

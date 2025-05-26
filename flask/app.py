@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for,jsonify,current_app
 from werkzeug.utils import secure_filename
 import os
 import json
@@ -83,6 +83,28 @@ def start_watch_route():
         is_watching = True
         threading.Thread(target=start_watch, args=(watch_path,), daemon=True).start()
     return redirect(url_for('index'))
+
+@app.route('/api/image_list')
+def image_list():
+    upload_file = os.path.join(current_app.root_path,'uploads')
+    if not os.path.exists(upload_file):
+        return jsonify([])
+    files = os.listdir(upload_file)
+    return jsonify(files)
+
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    files = request.files.getlist('files')
+    upload_folder = os.path.join(app.root_path, 'uploads')
+
+    os.makedirs(upload_folder, exist_ok=True)
+
+    for file in files:
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(upload_folder, filename))
+
+    return '', 204  # 成功だけ返す
 
 
 if __name__ == '__main__':
