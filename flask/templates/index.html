@@ -10,30 +10,9 @@
     <script src='main.js'></script>
 </head>
 <body>
-    <form method="POST" action="{{url_for('set_folder')}}" enctype="multipart/form-data">
-            <input type="file" name="files" webkitdirectory>
-            <input type="submit" value="送信"> 
-    </form>
+    
     <input type="file" id="file-input" name="files" webkitdirectory multiple>
-            {% if watch_path_index %}
-                <p>現在監視中のフォルダ: {{ watch_path_index }}</p>
-            {% else %}
-                <p>監視フォルダはまだ設定されていません。</p>
-            {% endif %}
-
-  {% if is_watching %}
-    <p style="color:green;">監視中です</p>
-  {% else %}
-    <p style="color:red;">停止中です</p>
-  {% endif %}
-
-  <form action="{{ url_for('start_watch_route') }}" method="post">
-    <button type="submit">監視開始</button>
-  </form>
-
-  <form action="{{ url_for('stop_watch_route') }}" method="post">
-    <button type="submit">監視停止</button>
-  </form>
+          
   <ul id="file-list"></ul>
 <ul id="image-list"></ul>
 

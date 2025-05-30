@@ -24,6 +24,8 @@ document.addEventListener("DOMContentLoaded",() =>{
     fileList.appendChild(li);
   });
 
+  // fetch('/upload')
+  //  .then
     fetchImageList();
     startImageAutoUpdate();
 })

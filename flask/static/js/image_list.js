@@ -23,24 +23,31 @@ function startImageAutoUpdate() {
 
 document.getElementById('file-input').addEventListener('change', function(event) {
     const files = event.target.files;
-    const formData = new FormData();
 
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
-    for (let i = 0; i < files.length; i++) {
-        if (allowedTypes.includes(files[i].type)) {
-            formData.append('files', files[i]);
+    // ステップ①：先に uploads フォルダを空にする
+    fetch('/clear_uploads', {
+        method: 'POST'
+    }).then(() => {
+        // ステップ②：空にした後でファイルをアップロード
+        const formData = new FormData();
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
+
+        for (let i = 0; i < files.length; i++) {
+            if (allowedTypes.includes(files[i].type)) {
+                formData.append('files', files[i]);
+            }
         }
-    }
 
 
-    fetch('/upload', {
-        method: 'POST',
-        body: formData
-    }).then(response => {
-        if (response.ok) {
-            fetchImageList(); // 成功したらすぐ一覧を更新
-        } else {
-            console.error('アップロード失敗');
-        }
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    fetchImageList(); // 成功したらすぐ一覧を更新
+                } else {
+                    console.error('アップロード失敗');
+                }
+            });
     });
 });

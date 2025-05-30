@@ -1,17 +1,21 @@
-from flask import Flask, request, render_template, redirect, url_for,jsonify,current_app
+from flask import Flask, request, render_template, redirect, url_for, jsonify, current_app
 from werkzeug.utils import secure_filename
 import os
+import time
 import json
 import threading
-from folder_watch import start_watch,stop
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 app = Flask(__name__)
+
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 is_watching = False
 
-
+# 設定ファイルから監視パスを読み込む（なければNone）
 def load_watch_path():
     try:
         with open('settings.json', 'r', encoding='utf-8') as f:
@@ -19,93 +23,85 @@ def load_watch_path():
     except FileNotFoundError:
         return None
 
-
 watch_path = load_watch_path()
-watch_path_index = None
-
+# ファイルを . で分け、拡張子が{}のものを返すぜ
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
-
-@app.route('/', methods=['GET'])
-def index():
-    global watch_path
-    global watch_path_index
-    pathname_index=watch_path_index if watch_path_index else "未設定"
-    return render_template('index.html', watch_path=watch_path,is_watching=is_watching,watch_path_index=pathname_index)
-
-@app.route('/set_folder', methods=['POST'])
-def set_folder():
-    global watch_path
-    global is_watching
-    global watch_path_index
-
-    files = request.files.getlist('files')
-
-    if not files:
-        return "ファイルが送信されていません", 400
-
-    first_file = files[0]
-    watch_path_index = os.path.dirname(first_file.filename)
-
-   # 正しい例（Flaskサーバー上に存在するパス）
-    watch_path = os.path.abspath(app.config['UPLOAD_FOLDER'])  # uploads フォルダの絶対パス
-    
-
-    for file in files:
-        if allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            file.save(save_path)
-
-    
-
-    with open('settings.json', 'w', encoding='utf-8') as f:
-        json.dump({'watch_path': watch_path}, f, ensure_ascii=False, indent=2)
-
-    if not is_watching:
-        is_watching = True
-        threading.Thread(target=start_watch,args=(watch_path,),daemon=True).start()
-
-    return redirect(url_for('index'))
-
-@app.route('/stop',methods=['POST'])
-def stop_watch_route():
-    stop()
-    global is_watching
-    is_watching = False
-    return redirect(url_for('index'))
-
-@app.route('/start_watch_route', methods=['POST'])
-def start_watch_route():
-    global is_watching, watch_path
-    if watch_path and not is_watching:
-        is_watching = True
-        threading.Thread(target=start_watch, args=(watch_path,), daemon=True).start()
-    return redirect(url_for('index'))
-
-@app.route('/api/image_list')
-def image_list():
-    upload_file = os.path.join(current_app.root_path,'uploads')
-    if not os.path.exists(upload_file):
-        return jsonify([])
-    files = os.listdir(upload_file)
-    return jsonify(files)
-
-
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    files = request.files.getlist('files')
+# uploadsに保存
+def save_files(files):
     upload_folder = os.path.join(app.root_path, 'uploads')
-
     os.makedirs(upload_folder, exist_ok=True)
-
     for file in files:
         filename = secure_filename(file.filename)
         file.save(os.path.join(upload_folder, filename))
 
-    return '', 204  # 成功だけ返す
+# デフォルト処理
+@app.route('/', methods=['GET'])
+def index():
+    pathname_index = watch_path if watch_path else "未設定"
+    return render_template('index.html', watch_path=watch_path, is_watching=is_watching, watch_path_index=pathname_index)
 
+#　uploadsの中身をリストにして返す
+@app.route('/api/image_list')
+def image_list():
+    upload_folder = os.path.join(current_app.root_path, 'uploads')
+    if not os.path.exists(upload_folder):
+        return jsonify([])
+    files = os.listdir(upload_folder)
+    return jsonify(files)
+
+# htmlからfilesをもってくる
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    files = request.files.getlist('files')
+    save_files(files)
+    return '', 204
+
+# uploadsの初期化
+@app.route('/clear_uploads',methods=['POST'])
+def clear_uploads():
+    upload_folder = os.path.join(app.root_path,'uploads')
+    if os.path.exists(upload_folder):
+        for filename in os.listdir(upload_folder):
+            file_path = os.path.join(upload_folder,filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+    return '',204
+
+# ファイルシステムのイベントハンドラ
+class MyHandler(FileSystemEventHandler):
+    def on_created(self, event):
+        if not event.is_directory:
+            print("新しいファイルが追加されました:", event.src_path)
+            # ここにファイル追加時の処理を書くことも可能
+
+observer = None
+
+def start_observer(path):
+    global observer
+    observer = Observer()
+    observer.schedule(MyHandler(), path=path, recursive=False)
+    observer.start()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
+
+def start_observer_in_thread(path):
+    t = threading.Thread(target=start_observer, args=(path,), daemon=True)
+    t.start()
+
+def stop_observer():
+    global observer
+    if observer is not None:
+        observer.stop()
+        observer.join()
+        observer = None
 
 if __name__ == '__main__':
+    # もし起動時に監視開始したいならここで呼ぶ
+    start_observer_in_thread(watch_path)
+
     app.run(debug=True)
