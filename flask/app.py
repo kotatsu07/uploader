@@ -3,6 +3,7 @@ from werkzeug.utils import secure_filename
 import os
 import time
 import json
+import shutil
 import threading
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -71,9 +72,12 @@ def clear_uploads():
 # ファイルシステムのイベントハンドラ
 class MyHandler(FileSystemEventHandler):
     def on_created(self, event):
-        if not event.is_directory:
+        if not event.is_directory and event.src_path.lower().endswith(('png', 'jpg', 'jpeg', 'gif')):
             print("新しいファイルが追加されました:", event.src_path)
             # ここにファイル追加時の処理を書くことも可能
+            filename = os.path.basename(event.src_path)
+            destination_path = os.path.join(UPLOAD_FOLDER,filename)
+            shutil.copy2(event.src_path,destination_path)
 
 observer = None
 
