@@ -27,5 +27,5 @@ document.addEventListener("DOMContentLoaded",() =>{
   // fetch('/upload')
   //  .then
     fetchImageList();
-    startImageAutoUpdate();
+   // startImageAutoUpdate();
 })

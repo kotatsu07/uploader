@@ -6,8 +6,6 @@
     <title>Page Title</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-
-    <script src='main.js'></script>
 </head>
 <body>
     
@@ -17,11 +15,14 @@
 <ul id="image-list"></ul>
 
 
+<!-- その他のスクリプト（定義系）を先に -->
 <script src="{{ url_for('static', filename='js/image_list.js') }}"></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <script src="{{ url_for('static', filename='js/watch_status.js') }}"></script>
 
-
+<!-- そのあとに Socket.IO 関連スクリプトを読み込む -->
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='js/socket.js') }}"></script>
 
 </body>
 </html>

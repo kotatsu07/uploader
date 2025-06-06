@@ -1,4 +1,5 @@
 function fetchImageList() {
+    console.log('fetchImageList() が呼ばれました');  
     fetch('/api/image_list')
         .then(response => response.json())
         .then(data => {
@@ -15,11 +16,11 @@ function fetchImageList() {
             });
         });
 }
+window.fetchImageList = fetchImageList;
 
-
-function startImageAutoUpdate() {
-    setInterval(fetchImageList, 5000);
-}
+// function startImageAutoUpdate() {
+//     setInterval(fetchImageList, 5000);
+// }
 
 document.getElementById('file-input').addEventListener('change', function(event) {
     const files = event.target.files;

@@ -1,4 +1,5 @@
 from flask import Flask, request, render_template, redirect, url_for, jsonify, current_app
+from flask_socketio import SocketIO, emit
 from werkzeug.utils import secure_filename
 import os
 import time
@@ -9,6 +10,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 app = Flask(__name__)
+socketio = SocketIO(app)
 
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -79,6 +81,22 @@ class MyHandler(FileSystemEventHandler):
             destination_path = os.path.join(UPLOAD_FOLDER,filename)
             shutil.copy2(event.src_path,destination_path)
 
+            retries = 5
+            delay = 0.5
+            for i in range(retries):
+                try:
+                    shutil.copy2(event.src_path, destination_path)
+                    print("コピー成功:", destination_path)
+                    break
+                except PermissionError:
+                    print(f"コピー失敗({i+1}/{retries}) - ファイルが使用中かもしれません。{delay}秒後に再試行します。")
+                    time.sleep(delay)
+            else:
+                print("ファイルコピーに失敗しました。ファイルが使用中の可能性があります。")
+
+            socketio.emit('new_file_added', {'filename': filename})
+            print(f"SocketIO event sent: {filename}")
+
 observer = None
 
 def start_observer(path):
@@ -108,4 +126,5 @@ if __name__ == '__main__':
     # もし起動時に監視開始したいならここで呼ぶ
     start_observer_in_thread(watch_path)
 
-    app.run(debug=True)
+  
+    socketio.run(app,debug=True)
